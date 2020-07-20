@@ -10,6 +10,7 @@ const sequelize = require('./database/database');
 
 // CUSTOM ROUTERS
 var indexRouter = require('./routes/index');
+var userRouter = require('./routes/user');
 
 
 
@@ -48,6 +49,7 @@ app.use((req, res, next) => {
 
 // CUSTOM ROUTES
 app.use('/', indexRouter);
+app.use('/user', userRouter);
 
 
 
