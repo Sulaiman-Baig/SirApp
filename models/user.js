@@ -1,19 +1,16 @@
 module.exports = (sequelize, type) => {
-    return sequelize.define("admin", {
+    return sequelize.define("user", {
       id: {
         type: type.INTEGER,
         primaryKey: true,
         autoIncrement: true,
         required: true
-      },
-      
-      userName: type.STRING,
+      },      
+      name: type.STRING,
       email: type.STRING,
       password: type.STRING,
-      isSuperAdmin: type.BOOLEAN,
-      isApproved: type.BOOLEAN,
- 
-     
+      gender: type.STRING,
+      imageUrl: type.STRING,     
     });
   };
   

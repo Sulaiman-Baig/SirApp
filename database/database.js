@@ -3,7 +3,7 @@ const Sequelize = require('sequelize');
 // MODELS
 
 
-const AdminModel = require("../models/admin");
+const UserModel = require("../models/user");
 
 
 // SEQUELIZE CONNECTION
@@ -24,7 +24,7 @@ const sequelize = new Sequelize("sirapp", "root", "root1234", {
 
 // MODELS CREATIONS WITH SWQUELIZE
 
-const Admin = AdminModel(sequelize, Sequelize);
+const User = UserModel(sequelize, Sequelize);
 
 
 
@@ -36,9 +36,9 @@ const Admin = AdminModel(sequelize, Sequelize);
 
 //TO UPDATE SCHEMA
 
-// sequelize.sync({ alter: true }).then(() => {
-//     console.log(`Database & tables created!`);
-// });
+sequelize.sync({ alter: true }).then(() => {
+    console.log(`Database & tables created!`);
+});
 
 // test changing
 
@@ -47,8 +47,5 @@ const Admin = AdminModel(sequelize, Sequelize);
 // EXPORT MODELS
 
 module.exports = {
-    Admin
-  
- 
-
+    User
 }; 
