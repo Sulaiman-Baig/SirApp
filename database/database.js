@@ -4,7 +4,13 @@ const Sequelize = require('sequelize');
 
 
 const CommentModel = require("../models/comment");
+const ConversationModel = require("../models/conversation");
+const FollowerModel = require("../models/follower");
+const FollowingModel = require("../models/following");
+const FriendModel = require("../models/friend");
+const FriendshipModel = require("../models/friendship");
 const LikeModel = require("../models/like");
+const MessageModel = require("../models/message");
 const PostModel = require("../models/post");
 const UserModel = require("../models/user");
 
@@ -28,7 +34,13 @@ const sequelize = new Sequelize("sirapp", "root", "root1234", {
 // MODELS CREATIONS WITH SWQUELIZE
 
 const Comment = CommentModel(sequelize, Sequelize);
+const Conversation = ConversationModel(sequelize, Sequelize);
+const Follower = FollowerModel(sequelize, Sequelize);
+const Following = FollowingModel(sequelize, Sequelize);
+const Friend = FriendModel(sequelize, Sequelize);
+const Friendship = FriendshipModel(sequelize, Sequelize);
 const Like = LikeModel(sequelize, Sequelize);
+const Message = MessageModel(sequelize, Sequelize);
 const Post = PostModel(sequelize, Sequelize);
 const User = UserModel(sequelize, Sequelize);
 
@@ -37,6 +49,20 @@ const User = UserModel(sequelize, Sequelize);
 
 
 //  RELATIONS
+
+Message.belongsTo(Conversation);
+Conversation.hasMany(Message, { foreignKey: 'conversationId', sourceKey: 'id' });
+
+//  USER
+
+Friend.belongsTo(User);
+User.hasMany(Friend, { foreignKey: 'userId', sourceKey: 'id' });
+
+Follower.belongsTo(User);
+User.hasMany(Follower, { foreignKey: 'userId', sourceKey: 'id' });
+
+Following.belongsTo(User);
+User.hasMany(Following, { foreignKey: 'userId', sourceKey: 'id' });
 
 Like.belongsTo(User);
 User.hasMany(Like, { foreignKey: 'userId', sourceKey: 'id' });
@@ -67,7 +93,13 @@ sequelize.sync({ alter: true }).then(() => {
 
 module.exports = {
     Comment,
+    Conversation,
+    Follower,
+    Following,
+    Friend,
+    Friendship,
     Like,
+    Message,
     Post,
     User
 }; 

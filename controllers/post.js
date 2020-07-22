@@ -94,6 +94,20 @@ module.exports = {
         }
     },
 
+    async getAllPosts(req, res, next) {
+        try {
+         
+            const userId = req.params.userId;        
+            const posts = await Post.findAll({ where: { userId: userId } });
+            return res.status(http_status_codes.OK).json(posts);
+        }
+        catch (err) {
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error Occurd in Fetching All Posts"
+            });
+        }
+    },
+
 
     async deletePost(req, res, next) {
         try {
