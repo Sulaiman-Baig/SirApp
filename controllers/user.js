@@ -229,7 +229,448 @@ module.exports = {
             console.log(err);
             res.json("Some Error Occured!");
         });
-    }
+    },
+
+    async follow(req, res, next) {
+        try {
+            const followerId = req.params.followerId;
+            const followingId = req.params.followingId;
+
+            const isFollowed = await Following.findOne({ where: { userId: followerId, followingId: followingId } });
+            if (isFollowed) {
+
+                res.json({ message: "Already followed" });
+
+            } else if (isFollowed === null) {
+
+                await Following.create({ userId: followerId, followingId: followingId });
+                await Follower.create({ userId: followingId, followerId: followerId });
+                res.json({ message: 'Successfully followed' });
+            }
+        } catch (err) {
+
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error Occurd in Following User"
+            });
+        }
+    },
+
+    async unfollow(req, res, next) {
+        try {
+            const followerId = req.params.followerId;
+            const followingId = req.params.followingId;
+            const isFollowed = await Following.findOne({ where: { userId: followerId, followingId: followingId } });
+            if (isFollowed) {
+                await Following.destroy({ where: { userId: followerId, followingId: followingId } });
+                await Follower.destroy({ where: { userId: followingId, followerId: followerId } });
+                res.json({ message: 'Successfully unfollowed' });
+            } else if (isFollowed === null) {
+                res.json({ message: "You are not following this user" });
+            }
+        } catch (err) {
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error Occurd in Following User"
+            });
+        }
+    },
+
+    async friendRequest(req, res, next) {
+        try {
+
+            const userId = req.params.userId;
+            const friendId = req.params.friendId;
+            const isRequestSent = await Friend.findOne({ where: { userId: userId, friendId: friendId, isFriend: false } });
+            if (isRequestSent) {
+                res.json({ message: 'Freind Request Already Sent' });
+            } else {
+                const isFriend = await Friend.findOne({ where: { userId: userId, friendId: friendId, isFriend: true } });
+                if (isFriend) {
+                    res.json({ message: "Already Friend" });
+                } else if (isFriend === null) {
+                    await Friend.create({ userId: userId, friendId: friendId, isFriend: false });
+                    res.json({ message: 'Freind Request Sent Successfully' });
+                }
+            }
+        } catch (err) {
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error Occurd in Sending Friend Request"
+            });
+        }
+    },
+
+    async checkFriendshipStatus(req, res, next) {
+        try {
+            const userId = req.params.userId;
+            const friendId = req.params.friendId;
+            const isRequestSent = await Friend.findOne({ where: { userId: userId, friendId: friendId, isFriend: false } });
+            if (isRequestSent) {
+                res.json({ message: 'Freind Request Sent' });
+            } else {
+                const isAlreadyFriendship = await Friendship.findOne({
+                    where: {
+                        [Op.or]:
+                            [{
+                                [Op.and]:
+                                    [{ userId: userId },
+                                    { friendId: friendId }]
+                            },
+                            {
+                                [Op.and]:
+                                    [{ userId: friendId },
+                                    { friendId: userId }]
+                            }]
+                    }
+                });
+                if (isAlreadyFriendship) {
+                    res.json({ message: "Already Friend" });
+                } else {
+                    res.json({ message: "No Friend Request is Sent" });
+                }
+            }
+        } catch (err) {
+
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error Occurd in Checking Friend Request Status"
+            });
+        }
+    },
+
+    async getAllConversationsByUser(req, res, next) {
+        try {
+            const userId = req.params.userId;
+            const conIds = [];
+            const conversationsMap = await Conversation.findAll({
+                where: {
+                    [Op.or]:
+                        [{ senderId: userId },
+                        { receiverId: userId }]
+                }
+            });
+            conversationsMap.forEach(conItem => {
+                if (conItem.senderId !== userId) {
+                    conIds.push(conItem.senderId)
+                }
+                if (conItem.receiverId !== userId) {
+                    conIds.push(conItem.receiverId)
+                }
+            });
+            const conversations = await User.findAll({ where: { id: conIds } });
+            if (conversations.length > 0) {
+                res.json(conversations);
+            } else {
+                res.json({ message: 'No Conversation is started yet!' });
+            }
+        } catch (err) {
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error Occurd in Fetching All Conversations"
+            });
+        }
+    },
+    
+    async cancelFriendRequest(req, res, next) {
+        try {
+            const userId = req.params.userId;
+            const friendId = req.params.friendId;
+            const cancelFriendReq = await Friend.findOne({ where: { userId: userId, friendId: friendId, isFriend: false } });
+            if (cancelFriendReq) {
+                await cancelFriendReq.destroy();
+                res.json({ message: 'Cancel Freind Request  Successfully' });
+            } else {
+                res.json({ message: 'No Freind Request Exist' });
+            }
+        } catch (err) {
+
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error Occurd in Canceling Request"
+            });
+        }
+    },
+
+    async confirmFriendship(req, res, next) {
+        try {
+            userId = req.params.userId;
+            friendId = req.params.friendId;
+            const isAlreadyFriendship = await Friendship.findOne({
+                where: {
+                    [Op.or]:
+                        [{
+                            [Op.and]:
+                                [{ userId: userId },
+                                { friendId: friendId }]
+                        },
+                        {
+                            [Op.and]:
+                                [{ userId: friendId },
+                                { friendId: userId }]
+                        }]
+                }
+            });
+
+            if (isAlreadyFriendship) {
+                const requestToDelete = await Friend.destroy({
+                    where: {
+                        [Op.or]:
+                            [{
+                                [Op.and]:
+                                    [{ userId: userId },
+                                    { friendId: friendId }]
+                            },
+                            {
+                                [Op.and]:
+                                    [{ userId: friendId },
+                                    { friendId: userId }]
+                            }]
+                    }
+                })
+                res.json({ message: 'Already Friends' });
+            } else {
+                Friendship.create({
+                    userId: userId,
+                    friendId: friendId
+                });
+                Friendship.create({
+                    userId: friendId,
+                    friendId: userId
+                });
+                const requestToDelete = await Friend.destroy({
+                    where: {
+                        [Op.or]:
+                            [{
+                                [Op.and]:
+                                    [{ userId: userId },
+                                    { friendId: friendId }]
+                            },
+                            {
+                                [Op.and]:
+                                    [{ userId: friendId },
+                                    { friendId: userId }]
+                            }]
+                    }
+                })
+                res.json({ message: 'Friendship confirmed Successfully' });
+            }
+        } catch (error) {
+
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "an error occured while confirming friendship"
+            })
+        }
+    },
+
+    async unFriend(req, res, next) {
+        try {
+            userId = req.params.userId;
+            friendId = req.params.friendId;
+            const isAlreadyFriendship = await Friendship.findOne({
+                where: {
+                    [Op.or]:
+                        [{
+                            [Op.and]:
+                                [{ userId: userId },
+                                { friendId: friendId }]
+                        },
+                        {
+                            [Op.and]:
+                                [{ userId: friendId },
+                                { friendId: userId }]
+                        }]
+                }
+            });
+
+            if (isAlreadyFriendship) {
+                await Friendship.destroy({
+                    where: {
+                        [Op.and]:
+                            [{ userId: userId },
+                            { friendId: friendId }]
+                    }
+                });
+                await Friendship.destroy({
+                    where: {
+                        [Op.and]:
+                            [{ userId: friendId },
+                            { friendId: userId }]
+                    }
+                });
+                res.json({ message: 'Unfriend Successfully' });
+            } else {
+                res.json({ message: 'Both users are not friends yet!' });
+            }
+        } catch (error) {
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "an error occured while  un-friendship"
+            })
+        }
+    },
+
+    async getFollowers(req, res, next) {
+        try {
+            followerIds = [];
+            const userId = req.params.userid;
+            const ids = await Follower.findAll({
+                attributes: [sequelize.fn('DISTINCT', sequelize.col('followerId')), 'followerId'],
+                where: {
+                    userId: userId
+                }
+            });
+            await ids.forEach(id => {
+                followerIds.push(id.followerId);
+            });
+            const followers = await User.findAll({ where: { id: [...followerIds] } });
+            return res.status(http_status_codes.OK).json(followers);
+
+        } catch (err) {
+
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error Occurd in Fetching All Followers"
+            });
+        }
+    },
+
+    async getFollowings(req, res, next) {
+        try {
+            followingIds = [];
+            const userId = req.params.userid;
+            const ids = await Following.findAll({
+                attributes: [sequelize.fn('DISTINCT', sequelize.col('followingId')), 'followingId'],
+                where: {
+                    userId: userId
+                }
+            });
+            await ids.forEach(id => {
+                followingIds.push(id.followingId);
+            });
+            const followings = await User.findAll({ where: { id: [...followingIds] } });
+            return res.status(http_status_codes.OK).json(followings);
+
+        } catch (err) {
+
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error Occurd in Fetching All Followings"
+            });
+        }
+    },
+
+    async isfollower(req, res, next) {
+        try {
+            const userId = req.params.userid;
+            const followerId = req.params.followerId;
+            const follower = await Follower.findOne({ where: { userId: userId, followerId: followerId } });
+            if (follower) {
+                const followerObject = await User.findOne({ where: { id: follower.followerId } });
+                return res.status(http_status_codes.OK).json({ message: 'Follower', followerObject: followerObject });
+            } else {
+                return res.status(http_status_codes.NOT_FOUND).json({
+                    message: "Not Follower"
+                });
+            }
+        } catch (err) {
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error Occurd in Fetching isfollower"
+            });
+        }
+    },
+
+    async isfollowing(req, res, next) {
+        try {
+            const userId = req.params.userid;
+            const followingId = req.params.followingId;
+            const following = await Following.findOne({ where: { userId: userId, followingId: followingId } });
+            if (following) {
+                const followingObject = await User.findOne({ where: { id: following.followingId } });
+                return res.status(http_status_codes.OK).json({ message: 'Following', followingObject: followingObject });
+            } else {
+                return res.status(http_status_codes.NOT_FOUND).json({
+                    message: "Not Following"
+                });
+            }
+        } catch (err) {
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error Occurd in Fetching isfollowing"
+            });
+        }
+    },
+
+    async getAllFriends(req, res, next) {
+        try {
+            friendsIds = [];
+            const userId = req.params.userId;
+            const ids = await Friendship.findAll({
+                attributes: [sequelize.fn('DISTINCT', sequelize.col('friendId')), 'friendId'],
+                where: {
+                    userId: userId
+                }
+            });
+            await ids.forEach(id => {
+                friendsIds.push(id.friendId);
+            });
+            const friends = await User.findAll({ where: { id: [...friendsIds] } });
+            if (friends.length > 0) {
+                return res.status(http_status_codes.OK).json(friends);
+            } else if (friends.length === 0) {
+                return res.status(http_status_codes.OK).json({ message: 'This user has no friend yet!' });
+            }
+        } catch (err) {
+
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error Occurd in Fetching All Friends"
+            });
+        }
+    },
+
+    async getAllFriendRequests(req, res, next) {
+        try {
+            usersIds = [];
+            const friendId = req.params.userId;
+            const ids = await Friend.findAll({
+                attributes: [sequelize.fn('DISTINCT', sequelize.col('userId')), 'userId'],
+                where: {
+                    friendId: friendId, isFriend: false
+                }
+            });
+            await ids.forEach(id => {
+                usersIds.push(id.userId);
+            });
+            const fRequests = await User.findAll({ where: { id: [...usersIds] } });
+            if (fRequests.length > 0) { return res.status(http_status_codes.OK).json(fRequests); } else { res.json({ message: 'No Friend Requests Sent Yet' }) }
+
+        } catch (err) {
+
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error Occurd in Fetching All Friend Requests"
+            });
+        }
+    },
+
+    async changeBlockStatus(req, res, next) {
+        try {
+            const user = await User.findOne({ where: { id: req.params.userId } });
+            if (user.isBlocked) {
+                await user.update({ isBlocked: false });
+                return res.status(http_status_codes.OK).json({ message: 'User Un-Blocked successfully' });
+            } else if (!user.isBlocked) {
+                await user.update({ isBlocked: true });
+                return res.status(http_status_codes.OK).json({ message: 'User Blocked successfully' });
+            }
+
+        } catch (error) {
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error occured in changing user status"
+            })
+        }
+    },
+
+    async getById(req, res, next) {
+        try {
+            const user = await User.findOne({ where: { id: req.params.id } });
+            return res.status(http_status_codes.OK).json(user);
+        } catch (error) {
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error occured in fetching single user"
+            })
+        }
+    },
+
 
 
 };
