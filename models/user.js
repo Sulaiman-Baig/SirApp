@@ -10,7 +10,11 @@ module.exports = (sequelize, type) => {
       email: type.STRING,
       password: type.STRING,
       gender: type.STRING,
-      imageUrl: type.STRING,     
+      dob: type.STRING,
+      marriageStatus: type.STRING,
+      profilePicUrl: type.STRING,     
+      coverPicUrl: type.STRING,     
+      inviteCode: type.STRING,     
     });
   };
   

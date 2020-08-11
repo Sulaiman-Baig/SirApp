@@ -16,7 +16,11 @@ module.exports = {
                 name,
                 email,
                 password,
-                gender
+                gender,
+                dob,
+                marriageStatus,
+                profilePicUrl,
+                coverPicUrl
             } = req.body;
 
             User.findOne({
@@ -30,7 +34,11 @@ module.exports = {
                         name: name,
                         password: hashedpassword.generate(password),
                         email: email,
-                        gender: gender
+                        gender: gender,
+                        dob: dob,
+                        marriageStatus: marriageStatus,
+                        profilePicUrl: profilePicUrl,
+                        coverPicUrl: coverPicUrl
                     });
                     return res.status(http_status_codes.CREATED).json({ message: "User created successfully" });
                 }
@@ -569,7 +577,7 @@ module.exports = {
                 message: "Error Occurd in Fetching isfollower"
             });
         }
-    },
+    },    
 
     async isfollowing(req, res, next) {
         try {
@@ -651,6 +659,24 @@ module.exports = {
             } else if (!user.isBlocked) {
                 await user.update({ isBlocked: true });
                 return res.status(http_status_codes.OK).json({ message: 'User Blocked successfully' });
+            }
+
+        } catch (error) {
+            return res.status(http_status_codes.INTERNAL_SERVER_ERROR).json({
+                message: "Error occured in changing user status"
+            })
+        }
+    },
+
+    async isEmailExists(req, res, next) {
+        try {
+
+            const {email} = req.body;
+            const user = await User.findAll({ where: { email: email } });
+            if (user) {
+                return res.status(http_status_codes.OK).json({ message: 'User Already Exists with this Email' });
+            } else if (!user) {
+                return res.status(http_status_codes.OK).json({ message: 'User Does not Exist with this Email' });
             }
 
         } catch (error) {

@@ -27,5 +27,6 @@ router.post('/update/:id', userController.updateUser);
  router.get('/getallfriends/:userId' , userController.getAllFriends);
  router.get('/getallconversationsbyuser/:userId' , userController.getAllConversationsByUser); 
  router.post('/changeblockstatus/:userId' , userController.changeBlockStatus); 
+ router.post('/isemailexists' , userController.isEmailExists); 
 
 module.exports = router;
